@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konfiguracja pompy ciepła Clausius",
+        "description": "Wprowadź dane dostępowe do pompy ciepła Clausius",
+        "data": {
+          "host": "Adres IP lub hostname",
+          "port": "Port",
+          "username": "Nazwa użytkownika",
+          "password": "Hasło"
+        },
+        "data_description": {
+          "host": "Adres IP lub nazwa hosta pompy ciepła",
+          "port": "Port HTTP (zazwyczaj 8080)",
+          "username": "Nazwa użytkownika do logowania",
+          "password": "Hasło użytkownika"
+        }
+      }
+    },
+    "error": {
+      "connection": "Nie udało się połączyć z pompą ciepła. Sprawdź adres IP i port.",
+      "authentication": "Błędne dane logowania. Sprawdź nazwę użytkownika i hasło.",
+      "unknown": "Wystąpił nieznany błąd. Sprawdź logi dla więcej informacji."
+    },
+    "abort": {
+      "already_configured": "Pompa ciepła Clausius jest już skonfigurowana."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Ustawienia pompy ciepła Clausius",
+        "description": "Konfiguracja parametrów integracji",
+        "data": {
+          "scan_interval": "Interwał odświeżania (sekundy)"
+        },
+        "data_description": {
+          "scan_interval": "Jak często odświeżać dane z pompy ciepła (30-3600 sekund)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "clausius_outside_temp": {
+        "name": "Temperatura zewnętrzna"
+      },
+      "clausius_cwu_temp": {
+        "name": "Temperatura CWU"
+      },
+      "clausius_on_off": {
+        "name": "Zasilanie"
+      },
+      "clausius_mode": {
+        "name": "Tryb pracy"
+      },
+      "clausius_compressor_status": {
+        "name": "Status kompresora"
+      },
+      "clausius_pump_status": {
+        "name": "Status pompy"
+      },
+      "clausius_pump_level": {
+        "name": "Poziom pompy"
+      },
+      "clausius_glycol_pressure": {
+        "name": "Ciśnienie glikolu"
+      },
+      "clausius_spf_year": {
+        "name": "SPF Roczny"
+      },
+      "clausius_spf_month": {
+        "name": "SPF Miesięczny"
+      },
+      "clausius_spf_day": {
+        "name": "SPF Dzienny"
+      }
+    }
+  }
+}

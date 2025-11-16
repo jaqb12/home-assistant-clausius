@@ -1,0 +1,14 @@
+{
+  "domain": "clausius",
+  "name": "Clausius Heat Pump",
+  "codeowners": ["Piotr Jakubczyk"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/jaqb12/home-assistant-clausius",
+  "domain_blueprints": [],
+  "issue_tracker": "https://github.com/jaqb12/home-assistant-clausius/issues",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "1.0.0",
+  "icon": "clausius_pump.png"
+}

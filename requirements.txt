@@ -1,0 +1,3 @@
+# External dependencies for Clausius integration
+# Note: All dependencies are included in Home Assistant core
+# No additional packages required

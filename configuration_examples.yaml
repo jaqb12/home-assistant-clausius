@@ -1,0 +1,176 @@
+# Przykład konfiguracji dla integratora Clausius
+# Ten plik pokazuje jak używać tej integracji w różnych kontekstach
+
+# 1. Automatyzacje (automation.yaml)
+alias: Monitorowanie pompy ciepła Clausius
+description: Monitoruj status pompy ciepła
+trigger:
+  - platform: state
+    entity_id:
+      - sensor.clausius_on_off
+      - sensor.clausius_compressor_status
+      - sensor.clausius_pump_status
+action:
+  - service: persistent_notification.create
+    data:
+      message: "Status pompy: {{ states('sensor.clausius_on_off') }}, Kompresor: {{ states('sensor.clausius_compressor_status') }}, Pompa: {{ states('sensor.clausius_pump_status') }}"
+      title: "📊 Status pompy ciepła Clausius"
+
+---
+# 2. Skrypty (script.yaml)  
+clausius_get_status:
+  alias: Pobierz status pompy ciepła
+  sequence:
+    - service: persistent_notification.create
+      data:
+        message: |
+          🌡️ Temperatura zewnętrzna: {{ states('sensor.clausius_outside_temp') }}°C
+          🚿 Temperatura CWU: {{ states('sensor.clausius_cwu_temp') }}°C
+          ⚡ Zasilanie: {{ states('sensor.clausius_on_off') }}
+          🔄 Tryb: {{ states('sensor.clausius_mode') }}
+          🔧 Kompresor: {{ states('sensor.clausius_compressor_status') }}
+          💧 Ciśnienie glikolu: {{ states('sensor.clausius_glycol_pressure') }} bar
+        title: "📈 Status pompy ciepła Clausius"
+
+---
+# 3. Grupa encji (groups.yaml)
+clausius_heat_pump:
+  name: "Pompa ciepła Clausius"
+  entities:
+    - sensor.clausius_outside_temp
+    - sensor.clausius_cwu_temp
+    - sensor.clausius_on_off
+    - sensor.clausius_mode
+    - sensor.clausius_compressor_status
+    - sensor.clausius_pump_status
+    - sensor.clausius_pump_level
+    - sensor.clausius_glycol_pressure
+    - sensor.clausius_spf_day
+    - sensor.clausius_spf_month
+    - sensor.clausius_spf_year
+
+---
+# 4. Dashboard Lovelace UI (ui-lovelace.yaml lub poprzez edytor UI)
+# Dodaj do dashboard:
+
+# type: entities
+# title: "Pompa ciepła Clausius"
+# show_header_toggle: false
+# entities:
+#   - entity: sensor.clausius_outside_temp
+#     name: Temperatura zewnętrzna
+#     icon: mdi:thermometer
+#   - entity: sensor.clausius_cwu_temp  
+#     name: Temperatura CWU
+#     icon: mdi:water-thermometer
+#   - entity: sensor.clausius_on_off
+#     name: Zasilanie
+#     icon: mdi:power-plug
+#   - entity: sensor.clausius_mode
+#     name: Tryb pracy
+#     icon: mdi:cog
+#   - entity: sensor.clausius_compressor_status
+#     name: Status kompresora
+#     icon: mdi:engine
+#   - entity: sensor.clausius_glycol_pressure
+#     name: Ciśnienie glikolu
+#     icon: mdi:gauge
+
+---
+# 5. Custom card w Lovelace (np. vertical-stack-in-card)
+# type: vertical-stack-in-card
+# cards:
+#   - type: gauge
+#     entity: sensor.clausius_outside_temp
+#     name: Temperatura zewnętrzna
+#     min: -20
+#     max: 40
+#     severity:
+#       green: 0
+#       yellow: 25
+#       red: 35
+#   - type: gauge
+#     entity: sensor.clausius_cwu_temp
+#     name: Temperatura CWU
+#     min: 0
+#     max: 80
+#     severity:
+#       green: 0
+#       yellow: 50
+#       red: 65
+#   - type: entities
+#     entities:
+#       - entity: sensor.clausius_on_off
+#         name: Zasilanie
+#       - entity: sensor.clausius_mode
+#         name: Tryb pracy
+#       - entity: sensor.clausius_compressor_status
+#         name: Status kompresora
+
+---
+# 6. Historia i wykresy
+# type: history-graph
+# title: Historia temperatur
+# entities:
+#   - sensor.clausius_outside_temp
+#   - sensor.clausius_cwu_temp
+
+---
+# 7. Automatyzacje alertów
+alias: Alert wysokiej temperatury CWU
+description: Wyślij powiadomienie gdy temperatura CWU przekroczy 60°C
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.clausius_cwu_temp
+    above: 60
+condition:
+  - condition: state
+    entity_id: person.your_name
+    state: home
+action:
+  - service: notify.mobile_app_your_phone
+    data:
+      title: "⚠️ Wysoka temperatura CWU!"
+      message: "Temperatura wynosi {{ states('sensor.clausius_cwu_temp') }}°C"
+      data:
+        icon: mdi:thermometer-alert
+        color: red
+        priority: high
+        clickAction:
+          action: open_app
+          package: homeassistant
+
+---
+# 8. Energia i koszty (jeśli dostępne liczniki energii)
+alias: Monitoring energii pompy ciepła
+description: Oblicz koszt pracy pompy ciepła
+trigger:
+  - platform: time_pattern
+    minutes: "/15"  # co 15 minut
+condition:
+  - condition: state
+    entity_id: sensor.clausius_on_off
+    state: "On"
+action:
+  - service: input_number.set_value
+    data:
+      entity_id: input_number.clausius_energy_cost
+      value: "{{ states('sensor.clausius_spf_day') | float(0) * 0.6 }}"
+
+---
+# 9. Backup i monitoring
+alias: Daily Clausius backup
+description: Codzienny backup statusu pompy ciepła
+trigger:
+  - platform: time
+    at: "00:00:00"
+action:
+  - service: recorder.purge
+    data:
+      keep_days: 30
+      entities:
+        - sensor.clausius_*
+  - service: persistent_notification.create
+    data:
+      message: "Status pompy ciepła na dzień {{ now().strftime('%Y-%m-%d') }}: {{ states('sensor.clausius_on_off') }} - Tryb: {{ states('sensor.clausius_mode') }}"
+      title: "📋 Codzienny raport Clausius"
