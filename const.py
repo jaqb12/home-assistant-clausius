@@ -9,7 +9,7 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "clausius"
 
 # Default configuration
-DEFAULT_SCAN_INTERVAL = 60  # seconds
+DEFAULT_SCAN_INTERVAL = 120  # seconds
 
 # Configuration keys
 CONF_HOST = "host"
@@ -36,16 +36,15 @@ CLAUSIUS_ENTITIES = {
     },
     "cwu_temp": {
         "name": "Temperatura CWU",
-        "device_class": "temperature", 
+        "device_class": "temperature",
         "unit_of_measurement": "°C",
         "icon": "mdi:water-thermometer",
         "description": "Temperatura ciepłej wody użytkowej"
     },
-    
+
     # Status sensors
     "on_off": {
         "name": "Zasilanie",
-        "device_class": "power",
         "icon": "mdi:power-plug",
         "description": "Stan zasilania pompy ciepła"
     },
@@ -64,11 +63,11 @@ CLAUSIUS_ENTITIES = {
         "icon": "mdi:pump",
         "description": "Status pracy pompy obiegowej"
     },
-    
+
     # Level/Meter sensors
     "pump_level": {
-        "name": "Poziom pompy",
-        "icon": "mdi:gauge",
+        "name": "Tryb pracy pompy",
+        "icon": "mdi:heat-pump-outline",
         "description": "Poziom pracy pompy grzewczej"
     },
     "glycol_pressure": {
@@ -78,7 +77,42 @@ CLAUSIUS_ENTITIES = {
         "icon": "mdi:gauge",
         "description": "Ciśnienie glikolu w układzie"
     },
-    
+    "glycol_input_temp": {
+        "name": "Temperatura glikolu na wejściu",
+        "device_class": "temperature",
+        "unit_of_measurement": "°C",
+        "icon": "mdi:water-thermometer",
+        "description": "Temperatura glikolu na wejściu do pompy ciepła"
+    },
+    "glycol_output_temp": {
+        "name": "Temperatura glikolu na wyjściu",
+        "device_class": "temperature",
+        "unit_of_measurement": "°C",
+        "icon": "mdi:water-thermometer",
+        "description": "Temperatura glikolu na wyjściu do pompy ciepła"
+    },
+    "water_presure": {
+        "name": "Ciśnienie wody",
+        "device_class": "pressure",
+        "unit_of_measurement": "bar",
+        "icon": "mdi:gauge",
+        "description": "Ciśnienie wody w układzie ogrzewania"
+    },
+    "water_heating_out_temp": {
+        "name": "Temperatura wody ogrzeania - wyjście",
+        "device_class": "temperature",
+        "unit_of_measurement": "°C",
+        "icon": "mdi:heating-coil",
+        "description": "Temperatura wody na wyjściu z pompy ciepła do układu ogrzewania"
+    },
+    "water_heating_in_temp": {
+        "name": "Temperatura wody ogrzeania - wejście",
+        "device_class": "temperature",
+        "unit_of_measurement": "°C",
+        "icon": "mdi:heating-coil",
+        "description": "Temperatura wody na wejściu do pompy ciepła z układu ogrzewania"
+    },
+
     # SPF statistics
     "spf_year": {
         "name": "SPF Roczny",
@@ -89,7 +123,7 @@ CLAUSIUS_ENTITIES = {
     "spf_month": {
         "name": "SPF Miesięczny",
         "icon": "mdi:chart-bar",
-        "unit_of_measurement": "SPF", 
+        "unit_of_measurement": "SPF",
         "description": "Miesięczny współczynnik SPF"
     },
     "spf_day": {
@@ -102,7 +136,7 @@ CLAUSIUS_ENTITIES = {
 
 # Default values for configuration
 DEFAULT_CONFIG = {
-    CONF_HOST: "CT0025A23084.sn.ceo2green.com",
+    CONF_HOST: "",
     CONF_PORT: 80,
     CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL
 }

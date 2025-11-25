@@ -1,9 +1,10 @@
 """Clausius Heat Pump sensors."""
+
 from __future__ import annotations
 
 import asyncio
-import logging
 import re
+import logging
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
@@ -62,17 +63,17 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
         self.port = self.clausius_config["port"]
         self.username = self.clausius_config["username"]
         self.password = self.clausius_config["password"]
-        
+
         update_interval_seconds = entry.options.get("scan_interval", 60)
         update_interval = timedelta(seconds=update_interval_seconds)
-        
+
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
             update_interval=update_interval,
         )
-        
+
         self.base_url = CLAUSIUS_BASE_URL.format(host=self.host, port=self.port)
         self._hass = hass
 
@@ -81,14 +82,14 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
         try:
             data = {}
             successful_endpoints = 0
-            
+
             # Fetch data from all three endpoints
             endpoints = [
                 CLAUSIUS_TEMPERATURAS_PATH,
-                CLAUSIUS_STATUS_PATH, 
-                CLAUSIUS_INFORMACION_PATH
+                CLAUSIUS_STATUS_PATH,
+                CLAUSIUS_INFORMACION_PATH,
             ]
-            
+
             for endpoint in endpoints:
                 try:
                     endpoint_data = await self._fetch_endpoint(endpoint)
@@ -98,18 +99,20 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
                         _LOGGER.debug(f"Successfully fetched data from {endpoint}")
                 except Exception as err:
                     _LOGGER.warning(f"Failed to fetch {endpoint}: {err}")
-                    
+
             # If no successful endpoints, set offline mode
             if successful_endpoints == 0:
-                _LOGGER.warning("No data received from any endpoint - setting offline mode")
+                _LOGGER.warning(
+                    "No data received from any endpoint - setting offline mode"
+                )
                 return self._get_offline_data()
-                
+
             return data
-            
+
         except Exception as err:
             _LOGGER.error(f"Error communicating with API: {err}")
             return self._get_offline_data()
-            
+
     def _get_offline_data(self) -> dict[str, Any]:
         """Return offline data when device is not reachable."""
         return {
@@ -118,44 +121,44 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             "pump_level": None,
             "glycol_pressure": None,
             "on_off": None,
-            "mode": "OFFLINE", 
+            "mode": "OFFLINE",
             "compressor_status": "OFFLINE",
-            "pomp_status": "OFFLINE",
+            "pump_status": "OFFLINE",
             "spf_year": None,
             "spf_month": None,
-            "spf_day": None
+            "spf_day": None,
         }
 
     async def _fetch_endpoint(self, endpoint: str) -> dict[str, Any]:
         """Fetch data from a specific Clausius endpoint."""
         import base64
         import asyncio
-        
+
         # Create Basic Auth header
         credentials = f"{self.username}:{self.password}"
         auth_header = f"Basic {base64.b64encode(credentials.encode()).decode()}"
-        
+
         headers = {"Authorization": auth_header}
         url = f"{self.base_url}/{endpoint}"
-        
+
         session = async_get_clientsession(self._hass)
-        
+
         try:
             _LOGGER.debug(f"Fetching {endpoint} from {url}")
-            
+
             async with session.get(
                 url,
                 headers=headers,
-                timeout=15  # 15 second timeout
+                timeout=aiohttp.ClientTimeout(total=15),  # 15 second timeout
             ) as response:
                 if response.status != 200:
                     _LOGGER.warning(f"HTTP {response.status} for {endpoint}: {url}")
                     return {}
-                    
+
                 content = await response.text()
                 _LOGGER.debug(f"Successfully fetched {endpoint}")
                 return self._parse_endpoint_content(endpoint, content)
-                
+
         except asyncio.TimeoutError:
             _LOGGER.warning(f"Timeout connecting to {endpoint}: {url}")
             return {}
@@ -172,170 +175,292 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
     def _parse_endpoint_content(self, endpoint: str, content: str) -> dict[str, Any]:
         """Parse content from Clausius endpoint."""
         results = {}
-        
+
         if endpoint == CLAUSIUS_TEMPERATURAS_PATH:
             results = self._parse_temperaturas(content)
         elif endpoint == CLAUSIUS_STATUS_PATH:
             results = self._parse_status(content)
         elif endpoint == CLAUSIUS_INFORMACION_PATH:
             results = self._parse_informacion(content)
-            
+
         return results
 
     def _parse_temperaturas(self, content: str) -> dict[str, Any]:
-        """Parse temperaturas endpoint content based on HTML files."""
-        import re
+        """Parse temperaturas endpoint content."""
         results = {}
-        
-        # 1. Temperatura zewnętrzna (outside_temp)
-        # Szuka obrazka 'exterior.png' i bierze wartość z następnego bloku vertical-text
-        # <img ... src="./Temperaturas - Clausius_files/exterior.png">
-        # <div class="vertical-text"><span>11.9</span> ºC</div>
-        match_out = re.search(
-            r'exterior\.png.*?<div class="vertical-text"><span>([-\d.,]+)</span>', 
-            content, 
-            re.IGNORECASE | re.DOTALL
-        )
-        if match_out:
-            try:
-                results["outside_temp"] = float(match_out.group(1).replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse outside_temp")
+        lines = content.split("\n")
 
-        # 2. Temperatura CWU (cwu_temp)
-        # Szuka obrazka 'shower.png' i bierze wartość z następnego bloku vertical-text
-        # <img ... src="./Temperaturas - Clausius_files/shower.png">
-        # <div class="vertical-text">43.8 ºC</div>
-        match_cwu = re.search(
-            r'shower\.png.*?<div class="vertical-text">([-\d.,]+)\s*ºC</div>', 
-            content, 
-            re.IGNORECASE | re.DOTALL
-        )
-        if match_cwu:
-            try:
-                # Usuwa <span> jeśli jest, i bierze tylko liczbę
-                value_str = re.sub(r'<.*?>', '', match_cwu.group(1)).strip()
-                results["cwu_temp"] = float(value_str.replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse cwu_temp")
+        _LOGGER.debug(f"Parsing temperaturas - total lines: {len(lines)}")
 
-        # 3. Poziom pompy (pump_level) - to powinno nadal działać
-        # <div class="vertical-text">Level 1</div>
-        match_level = re.search(r'Level\s(\d)', content, re.IGNORECASE)
-        if match_level:
-            try:
-                results["pump_level"] = int(match_level.group(1))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse pump_level")
-        
-        _LOGGER.debug(f"Parsed temperaturas: {results}")
+        # Look for temperature data patterns
+        for i, line in enumerate(lines):
+            line_lower = line.lower()
+            # Outiside tempareture in in next line after line containing exterior.png
+            if "exterior.png" in line_lower:
+                _LOGGER.debug(f"Found exterior.png at line {i}: {line[:100]}")
+                # Safely get the next line if it exists
+                if i + 1 < len(lines):
+                    match = re.search(r"<span>([-+]?\d*\.?\d+)</span>", lines[i + 1])
+                    value = float(match.group(1)) if match else None
+                    if value is not None:
+                        results["outside_temp"] = value
+                        _LOGGER.debug(f"Found outside_temp: {value}")
+
+            # CWU temperature pattern
+            # CWU temperature is in the next line after line containing 'src="img/shower.png"></div></div>'
+            elif 'shower.png' in line_lower:
+                _LOGGER.debug(f"Found shower.png at line {i}: {line[:100]}")
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1]
+                    _LOGGER.debug(f"Next line after shower.png (line {i+1}): {next_line[:100]}")
+                    match = re.search(r">([-+]?\d*\.?\d+|\d+) &ordm;C", next_line)
+                    if not match:
+                        # Try alternative patterns
+                        _LOGGER.debug(f"First regex didn't match, trying alternative")
+                        match = re.search(r">([-+]?\d*\.?\d+)", next_line)
+                    value = float(match.group(1)) if match else None
+                    if value is not None:
+                        results["cwu_temp"] = value
+                        _LOGGER.debug(f"Found cwu_temp: {value}")
+                    else:
+                        _LOGGER.debug(f"Could not parse CWU temperature from: {next_line[:100]}")
+
+            # Pump level
+            elif "radiant.png" in line_lower:
+                _LOGGER.debug(f"Found radiant.png at line {i}: {line[:100]}")
+                # Safely get the next line if it exists
+                if i + 1 < len(lines):
+                    match = re.search(r"Level\s+(\d+)", lines[i + 1])
+                    if match:
+                        value = f"Level {match.group(1)}"
+                        results["pump_level"] = value
+                        _LOGGER.debug(f"Found pump_level: {value}")
+
+        _LOGGER.debug(f"Final results from _parse_temperaturas: {results}")
         return results
 
     def _parse_status(self, content: str) -> dict[str, Any]:
-        """Parse status endpoint content based on HTML files."""
-        import re
+        """Parse status endpoint content."""
         results = {}
+        lines = content.split("\n")
 
-        # 1. Zasilanie (on_off)
-        # <div class="section on" id="button" data-value-type="1">
-        match_on_off = re.search(r'id="button".*?data-value-type="(\d)"', content, re.IGNORECASE)
-        if match_on_off:
-            results["on_off"] = "On" if match_on_off.group(1) == "1" else "Off"
+        for i, line in enumerate(lines):
+            line_lower = line.lower()
 
-        # 2. Tryb pracy (mode)
-        # <div id="modo" data-value-type="2" ...>
-        match_mode = re.search(r'id="modo".*?data-value-type="(\d)"', content, re.IGNORECASE)
-        if match_mode:
-            mode_val = match_mode.group(1)
-            if mode_val == '0':
-                results["mode"] = 'Zima'
-            elif mode_val == '1':
-                results["mode"] = 'Lato'
-            elif mode_val == '2':
-                results["mode"] = 'Automatyczny'
-            else:
-                results["mode"] = 'Unknown'
+            # Power status
+            if "id=\"button" in line_lower:
+                _LOGGER.debug(f"Found button at line {i}: {line[:100]}")
+                # Safely get the number from the button ID
+                match = re.search(r"(\d+)", line)
+                if match:
+                    value = int(match.group(1))
+                    results["on_off"] = value
+                    # results["on_off"] = self._extract_powerstatus_value(value)
+                    _LOGGER.debug(f"Found on_off: {value}")
 
-        # 3. Status kompresora (compressor_status)
-        # <img id="compresor" ... data-value-type="0">
-        match_comp = re.search(r'id="compresor".*?data-value-type="(\d)"', content, re.IGNORECASE | re.DOTALL)
-        if match_comp:
-            compressor_status_map = {
-                '0': 'CompresorON', '1': 'TurningOff', '2': 'TurningOn',
-                '3': 'Waiting 321', '4': 'STOP', '5': 'OK',
-            }
-            status_val = match_comp.group(1)
-            results["compressor_status"] = compressor_status_map.get(status_val, 'Problem')
+            # Compressor status
+            elif "img id=\"compresor" in line_lower:
+                _LOGGER.debug(f"Found compresor status at line {i}")
+                # Safely get the number from the compresor
+                match = re.search(r"data-value-type=\"(\d+)", line)
+                if match:
+                    value = match.group(1)
+                    results["compressor_status"] = self._extract_status_value(value)
+                    _LOGGER.debug(f"Found compressor_status: {value}")
 
-        # 4. Status pompy (pump_status) - Zobacz wyjaśnienie poniżej
-        # Ten sensor nie istnieje w pliku Status.html
-        results["pump_status"] = None # Ustawiamy na None, ponieważ nie można go znaleźć
-        
-        _LOGGER.debug(f"Parsed status: {results}")
+            # Pump status
+            elif "id=\"estado" in line_lower:
+                _LOGGER.debug(f"Found pump status at line {i}")
+                # Safely get the number from the pump
+                match = re.search(r"data-value-type=\"(\d+)", line)
+                if match:
+                    value = match.group(1)
+                    results["pump_status"] = self._extract_pump_status_value(value)
+                    _LOGGER.debug(f"Found compressor_status: {value}")
+
+            # Mode
+            elif "id=\"modo" in line_lower:
+                _LOGGER.debug(f"Found mode at line {i}")
+                # Safely get the number from the mode
+                match = re.search(r"data-value-type=\"(\d+)", line)
+                if match:
+                    value = match.group(1)
+                    status_map = {
+                        "0": "Zima",
+                        "1": "Lato",
+                        "2": "Auto"
+                    }
+                    results["mode"] = status_map.get(value, "Unknown")
+                    _LOGGER.debug(f"Found mode: {value}")
+
         return results
 
     def _parse_informacion(self, content: str) -> dict[str, Any]:
-        """Parse informacion endpoint content based on PS script."""
-        import re
+        """Parse informacion endpoint content."""
         results = {}
+        lines = content.split("\n")
+        offset = 2
 
-        # PS: $lines[318].Substring($lines[318].IndexOf('bar') - 4, 3)
-        # Find number right before "bar"
-        match = re.search(r'([-+]?\d+[.,]?\d*)\s*bar', content, re.IGNORECASE)
-        if match:
-            try:
-                results["glycol_pressure"] = float(match.group(1).replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse glycol_pressure")
+        # Water pressure
+        water_presure_static_line = lines[306 - offset]
+        match_0 = re.search(r"(\d.\d) bar", water_presure_static_line)
+        if match_0:
+            value = float(match_0.group(1))
+            results["water_presure"] = value
+            _LOGGER.debug(f"Found glycol_pressure: {value}")
 
-        # PS: SPF values from specific lines (48, 57, 66) and 'text('...
-        # We find the keyword (e.g., "spf year") and then the number after the next 'text(' call
-        match = re.search(r'(spf.*(roczny|year)).*?text\(\).*?([-+]?\d+[.,]?\d*)', content, re.IGNORECASE | re.DOTALL)
-        if match:
-            try:
-                results["spf_year"] = float(match.group(3).replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse spf_year")
+        # Glycol pressure
+        gicol_presure_static_line = lines[329 - offset]
+        match_1 = re.search(r"(\d.\d) bar", gicol_presure_static_line)
+        if match_1:
+            value = float(match_1.group(1))
+            results["glycol_pressure"] = value
+            _LOGGER.debug(f"Found glycol_pressure: {value}")
 
-        match = re.search(r'(spf.*(miesięczny|month)).*?text\(\).*?([-+]?\d+[.,]?\d*)', content, re.IGNORECASE | re.DOTALL)
-        if match:
-            try:
-                results["spf_month"] = float(match.group(3).replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse spf_month")
+        # Glycol input temperature
+        glycol_input_temp_static_line = lines[327 - offset]
+        match_2 = re.search(r"([-+]?\d*\.?\d+) &ordm;C", glycol_input_temp_static_line)
+        if match_2:
+            value = float(match_2.group(1))
+            results["glycol_input_temp"] = value
+            _LOGGER.debug(f"Found glycol_input_temp: {value}")
 
-        match = re.search(r'(spf.*(dzienny|day)).*?text\(\).*?([-+]?\d+[.,]?\d*)', content, re.IGNORECASE | re.DOTALL)
-        if match:
-            try:
-                results["spf_day"] = float(match.group(3).replace(',', '.'))
-            except (ValueError, IndexError):
-                _LOGGER.warning("Could not parse spf_day")
+        # Glycol output temperature
+        glycol_output_temp_static_line = lines[324 - offset]
+        match_3 = re.search(r"([-+]?\d*\.?\d+) &ordm;C", glycol_output_temp_static_line)
+        if match_3:
+            value = float(match_3.group(1))
+            results["glycol_output_temp"] = value
+            _LOGGER.debug(f"Found glycol_output_temp: {value}")
 
-        _LOGGER.debug(f"Parsed informacion: {results}")
+        # SPF value for Day
+        spf_day_static_line = lines[52 - offset]
+        match_spf_day = re.search(r"(\d*\.?\d+)", spf_day_static_line)
+        if match_spf_day:
+            value = float(match_spf_day.group(1))
+            results["spf_day"] = value
+            _LOGGER.debug(f"Found spf_day: {value}")
+
+        # SPF value for Month
+        spf_month_static_line = lines[61 - offset]
+        match_spf_month = re.search(r"(\d*\.?\d+)", spf_month_static_line)
+        if match_spf_month:
+            value = float(match_spf_month.group(1))
+            results["spf_month"] = value
+            _LOGGER.debug(f"Found spf_month: {value}")
+
+        # SPF value for Year
+        spf_year_static_line = lines[70 - offset]
+        match_spf_year = re.search(r"(\d*\.?\d+)", spf_year_static_line)
+        if match_spf_year:
+            value = float(match_spf_year.group(1))
+            results["spf_year"] = value
+            _LOGGER.debug(f"Found spf_year: {value}")
+
+        # Water heating out temperature
+        water_heating_out_temp_static_line = lines[301 - offset]
+        match_water_out_tmp = re.search(r"([-+]?\d*\.?\d+) &ordm;C", water_heating_out_temp_static_line)
+        if match_water_out_tmp:
+            value = float(match_water_out_tmp.group(1))
+            results["water_heating_out_temp"] = value
+            _LOGGER.debug(f"Found water_heating_out_temp: {value}")
+
+        # Water heating in temperature
+        water_heating_in_temp_static_line = lines[304 - offset]
+        match_water_in_tmp = re.search(r"([-+]?\d*\.?\d+) &ordm;C", water_heating_in_temp_static_line)
+        if match_water_in_tmp:
+            value = float(match_water_in_tmp.group(1))
+            results["water_heating_in_temp"] = value
+            _LOGGER.debug(f"Found water_heating_in_temp: {value}")
+
+
+        # for i, line in enumerate(lines):
+        #     line_lower = line.lower()
+
+            # # Glycol pressure
+            # if (
+            #     "glycol" in line_lower
+            #     or "glikol" in line_lower
+            #     or "ciśnienie" in line_lower
+            # ):
+            #     for j in range(i + 1, min(i + 3, len(lines))):
+            #         value = self._extract_numeric_value(lines[j])
+            #         if value is not None:
+            #             results["glycol_pressure"] = value
+            #             break
+
+            # # SPF values
+            # if "spf" in line_lower:
+            #     if "roczny" in line_lower or "year" in line_lower:
+            #         for j in range(i + 1, min(i + 3, len(lines))):
+            #             value = self._extract_numeric_value(lines[j])
+            #             if value is not None:
+            #                 results["spf_year"] = value
+            #                 break
+
+            #     elif "miesięczny" in line_lower or "month" in line_lower:
+            #         for j in range(i + 1, min(i + 3, len(lines))):
+            #             value = self._extract_numeric_value(lines[j])
+            #             if value is not None:
+            #                 results["spf_month"] = value
+            #                 break
+
+            #     elif "dzienny" in line_lower or "day" in line_lower:
+            #         for j in range(i + 1, min(i + 3, len(lines))):
+            #             value = self._extract_numeric_value(lines[j])
+            #             if value is not None:
+            #                 results["spf_day"] = value
+            #                 break
+
         return results
+
+    def _extract_pump_status_value(self, text: str) -> Optional[str]:
+        """Extract pump status from text."""
+        text = text.strip().lower()
+        status_map = {
+                "0": "Alarm",
+                "1": "OK"
+            }
+        return status_map.get(text)
+
+    def _extract_powerstatus_value(self, text: str) -> Optional[str]:
+        """Extract power status from text."""
+        text = text.strip().lower()
+        status_map = {
+                "0": "Off",
+                "1": "On"
+            }
+        return status_map.get(text)
 
     def _extract_numeric_value(self, text: str) -> Optional[float]:
         """Extract numeric value from text."""
         import re
+
         # Look for numbers with optional decimal part
-        match = re.search(r'[-+]?\d*\.?\d+', text)
+        match = re.search(r"[-+]?\d*\.?\d+", text)
         if match:
             try:
-                return float(match.group().replace(',', '.'))
+                return float(match.group().replace(",", "."))
             except ValueError:
                 pass
         return None
 
     def _extract_status_value(self, text: str) -> Optional[str]:
         """Extract status string from text."""
-        text = text.strip().lower()
-        # Common status values
-        if any(word in text for word in ["on", "włączony", "aktywny"]):
-            return "On"
-        elif any(word in text for word in ["off", "wyłączony", "nieaktywny"]):
-            return "Off"
-        elif text:
-            return text.title()
+        value = text.strip().lower()
+        # Find index for number in text. it is placed inside data-value-type, f.ex.: data-value-type="5"
+        # Extract the value after data-value-type=" and before the next "
+        if value:
+            # number = match.group(1)
+            status_map = {
+                "0": "Compressor On",
+                "1": "Powering On",
+                "2": "Powering Off",
+                "3": "Wait",
+                "4": "Stop",
+                "5": "OK"
+            }
+            return status_map.get(value, "Unknown")
         return None
 
     def _extract_string_value(self, text: str) -> Optional[str]:
@@ -344,7 +469,6 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
         if text:
             return text.title()
         return None
-
 
 
 class ClausiusSensor(CoordinatorEntity, SensorEntity):
@@ -362,17 +486,25 @@ class ClausiusSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = description["name"]
         self._attr_unique_id = f"clausius_{entity_id}"
         self._attr_icon = description.get("icon")
-        self._attr_device_class = description.get("device_class")
+        if "device_class" in description:
+            self._attr_device_class = description.get("device_class")
         self._attr_unit_of_measurement = description.get("unit_of_measurement")
         self._attr_native_unit_of_measurement = description.get("unit_of_measurement")
-        self._entity_description = SensorEntityDescription(
-            key=entity_id,
-            name=description["name"],
-            icon=description.get("icon"),
-            device_class=description.get("device_class"),
-            native_unit_of_measurement=description.get("unit_of_measurement"),
-            state_class=SensorStateClass.MEASUREMENT,
-        )
+
+        # Build entity description with only valid keys
+        entity_desc_kwargs = {
+            "key": entity_id,
+            "name": description["name"],
+        }
+        if "icon" in description:
+            entity_desc_kwargs["icon"] = description.get("icon")
+        if "device_class" in description:
+            entity_desc_kwargs["device_class"] = description.get("device_class")
+        if "unit_of_measurement" in description:
+            entity_desc_kwargs["native_unit_of_measurement"] = description.get("unit_of_measurement")
+        entity_desc_kwargs["state_class"] = SensorStateClass.MEASUREMENT
+
+        self._entity_description = SensorEntityDescription(**entity_desc_kwargs)
         self._entity_id = entity_id
 
     @property
@@ -389,11 +521,13 @@ class ClausiusSensor(CoordinatorEntity, SensorEntity):
             "last_update": self.coordinator.last_update_success,
             "device_name": f"Clausius Heat Pump ({self.coordinator.host})",
         }
-        
+
         # Add description as attribute
         if self._entity_id in CLAUSIUS_ENTITIES:
-            attributes["description"] = CLAUSIUS_ENTITIES[self._entity_id]["description"]
-            
+            attributes["description"] = CLAUSIUS_ENTITIES[self._entity_id][
+                "description"
+            ]
+
         return attributes
 
     @property
