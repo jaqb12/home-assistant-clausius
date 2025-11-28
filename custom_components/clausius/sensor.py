@@ -334,7 +334,7 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found glycol_output_temp: {value}")
 
         # SPF value for Day
-        spf_day_static_line = lines[52 - offset]
+        spf_day_static_line = lines[61 - offset]
         match_spf_day = re.search(r"(\d*\.?\d+)", spf_day_static_line)
         if match_spf_day:
             value = float(match_spf_day.group(1))
@@ -342,7 +342,7 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found spf_day: {value}")
 
         # SPF value for Month
-        spf_month_static_line = lines[61 - offset]
+        spf_month_static_line = lines[70 - offset]
         match_spf_month = re.search(r"(\d*\.?\d+)", spf_month_static_line)
         if match_spf_month:
             value = float(match_spf_month.group(1))
@@ -350,7 +350,7 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found spf_month: {value}")
 
         # SPF value for Year
-        spf_year_static_line = lines[70 - offset]
+        spf_year_static_line = lines[52 - offset]
         match_spf_year = re.search(r"(\d*\.?\d+)", spf_year_static_line)
         if match_spf_year:
             value = float(match_spf_year.group(1))
@@ -358,7 +358,7 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found spf_year: {value}")
 
         # Water heating out temperature
-        water_heating_out_temp_static_line = lines[301 - offset]
+        water_heating_out_temp_static_line = lines[304 - offset]
         match_water_out_tmp = re.search(r"([-+]?\d*\.?\d+) &ordm;C", water_heating_out_temp_static_line)
         if match_water_out_tmp:
             value = float(match_water_out_tmp.group(1))
@@ -366,51 +366,12 @@ class ClausiusDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Found water_heating_out_temp: {value}")
 
         # Water heating in temperature
-        water_heating_in_temp_static_line = lines[304 - offset]
+        water_heating_in_temp_static_line = lines[301 - offset]
         match_water_in_tmp = re.search(r"([-+]?\d*\.?\d+) &ordm;C", water_heating_in_temp_static_line)
         if match_water_in_tmp:
             value = float(match_water_in_tmp.group(1))
             results["water_heating_in_temp"] = value
             _LOGGER.debug(f"Found water_heating_in_temp: {value}")
-
-
-        # for i, line in enumerate(lines):
-        #     line_lower = line.lower()
-
-            # # Glycol pressure
-            # if (
-            #     "glycol" in line_lower
-            #     or "glikol" in line_lower
-            #     or "ciśnienie" in line_lower
-            # ):
-            #     for j in range(i + 1, min(i + 3, len(lines))):
-            #         value = self._extract_numeric_value(lines[j])
-            #         if value is not None:
-            #             results["glycol_pressure"] = value
-            #             break
-
-            # # SPF values
-            # if "spf" in line_lower:
-            #     if "roczny" in line_lower or "year" in line_lower:
-            #         for j in range(i + 1, min(i + 3, len(lines))):
-            #             value = self._extract_numeric_value(lines[j])
-            #             if value is not None:
-            #                 results["spf_year"] = value
-            #                 break
-
-            #     elif "miesięczny" in line_lower or "month" in line_lower:
-            #         for j in range(i + 1, min(i + 3, len(lines))):
-            #             value = self._extract_numeric_value(lines[j])
-            #             if value is not None:
-            #                 results["spf_month"] = value
-            #                 break
-
-            #     elif "dzienny" in line_lower or "day" in line_lower:
-            #         for j in range(i + 1, min(i + 3, len(lines))):
-            #             value = self._extract_numeric_value(lines[j])
-            #             if value is not None:
-            #                 results["spf_day"] = value
-            #                 break
 
         return results
 
@@ -483,9 +444,13 @@ class ClausiusSensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_id = f"sensor.clausius_{entity_id}"
-        self._attr_name = description["name"]
         self._attr_unique_id = f"clausius_{entity_id}"
         self._attr_icon = description.get("icon")
+        
+        # Use translation_key instead of hardcoded name
+        self._attr_translation_key = description.get("translation_key")
+        self._attr_has_entity_name = True
+        
         if "device_class" in description:
             self._attr_device_class = description.get("device_class")
         self._attr_unit_of_measurement = description.get("unit_of_measurement")
@@ -494,7 +459,7 @@ class ClausiusSensor(CoordinatorEntity, SensorEntity):
         # Build entity description with only valid keys
         entity_desc_kwargs = {
             "key": entity_id,
-            "name": description["name"],
+            "translation_key": description.get("translation_key"),
         }
         if "icon" in description:
             entity_desc_kwargs["icon"] = description.get("icon")
@@ -521,13 +486,6 @@ class ClausiusSensor(CoordinatorEntity, SensorEntity):
             "last_update": self.coordinator.last_update_success,
             "device_name": f"Clausius Heat Pump ({self.coordinator.host})",
         }
-
-        # Add description as attribute
-        if self._entity_id in CLAUSIUS_ENTITIES:
-            attributes["description"] = CLAUSIUS_ENTITIES[self._entity_id][
-                "description"
-            ]
-
         return attributes
 
     @property

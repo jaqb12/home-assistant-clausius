@@ -2,41 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Konfiguracja pompy ciepła Clausius",
-        "description": "Wprowadź dane dostępowe do pompy ciepła Clausius",
+        "title": "Clausius Heat Pump Configuration",
+        "description": "Enter access credentials for your Clausius heat pump",
         "data": {
-          "host": "Adres IP lub hostname",
+          "host": "IP Address or hostname",
           "port": "Port",
-          "username": "Nazwa użytkownika",
-          "password": "Hasło"
+          "username": "Username",
+          "password": "Password"
         },
         "data_description": {
-          "host": "Adres IP lub nazwa hosta pompy ciepła",
-          "port": "Port HTTP (zazwyczaj 8080)",
-          "username": "Nazwa użytkownika do logowania",
-          "password": "Hasło użytkownika"
+          "host": "IP address or hostname of the heat pump",
+          "port": "HTTP port (usually 8080)",
+          "username": "Login username",
+          "password": "User password"
         }
       }
     },
     "error": {
-      "connection": "Nie udało się połączyć z pompą ciepła. Sprawdź adres IP i port.",
-      "authentication": "Błędne dane logowania. Sprawdź nazwę użytkownika i hasło.",
-      "unknown": "Wystąpił nieznany błąd. Sprawdź logi dla więcej informacji."
+      "connection": "Unable to connect to the heat pump. Check the IP address and port.",
+      "authentication": "Invalid login credentials. Check your username and password.",
+      "unknown": "An unknown error occurred. Check logs for more information."
     },
     "abort": {
-      "already_configured": "Pompa ciepła Clausius jest już skonfigurowana."
+      "already_configured": "Clausius heat pump is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Ustawienia pompy ciepła Clausius",
-        "description": "Konfiguracja parametrów integracji",
+        "title": "Clausius Heat Pump Settings",
+        "description": "Configure integration parameters",
         "data": {
-          "scan_interval": "Interwał odświeżania (sekundy)"
+          "scan_interval": "Refresh interval (seconds)"
         },
         "data_description": {
-          "scan_interval": "Jak często odświeżać dane z pompy ciepła (30-3600 sekund)"
+          "scan_interval": "How often to refresh data from the heat pump (30-3600 seconds)"
         }
       }
     }
@@ -44,37 +44,52 @@
   "entity": {
     "sensor": {
       "clausius_outside_temp": {
-        "name": "Temperatura zewnętrzna"
+        "name": "Outside Temperature"
       },
       "clausius_cwu_temp": {
-        "name": "Temperatura CWU"
+        "name": "DHW Temperature"
       },
       "clausius_on_off": {
-        "name": "Zasilanie"
+        "name": "Power Status"
       },
       "clausius_mode": {
-        "name": "Tryb pracy"
+        "name": "Operating Mode"
       },
       "clausius_compressor_status": {
-        "name": "Status kompresora"
+        "name": "Compressor Status"
       },
       "clausius_pump_status": {
-        "name": "Status pompy"
+        "name": "Pump Status"
       },
       "clausius_pump_level": {
-        "name": "Poziom pompy"
+        "name": "Pump Level"
       },
       "clausius_glycol_pressure": {
-        "name": "Ciśnienie glikolu"
+        "name": "Glycol Pressure"
+      },
+      "clausius_glycol_input_temp": {
+        "name": "Glycol Input Temperature"
+      },
+      "clausius_glycol_output_temp": {
+        "name": "Glycol Output Temperature"
+      },
+      "clausius_water_presure": {
+        "name": "Water Pressure"
+      },
+      "clausius_water_heating_in_temp": {
+        "name": "Water Heating Input Temperature"
+      },
+      "clausius_water_heating_out_temp": {
+        "name": "Water Heating Output Temperature"
       },
       "clausius_spf_year": {
-        "name": "SPF Roczny"
+        "name": "Annual SPF"
       },
       "clausius_spf_month": {
-        "name": "SPF Miesięczny"
+        "name": "Monthly SPF"
       },
       "clausius_spf_day": {
-        "name": "SPF Dzienny"
+        "name": "Daily SPF"
       }
     }
   }

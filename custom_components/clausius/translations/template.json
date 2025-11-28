@@ -1,0 +1,96 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "[TRANSLATE] Clausius Heat Pump Configuration",
+        "description": "[TRANSLATE] Enter access credentials for your Clausius heat pump",
+        "data": {
+          "host": "[TRANSLATE] IP Address or hostname",
+          "port": "[TRANSLATE] Port",
+          "username": "[TRANSLATE] Username",
+          "password": "[TRANSLATE] Password"
+        },
+        "data_description": {
+          "host": "[TRANSLATE] IP address or hostname of the heat pump",
+          "port": "[TRANSLATE] HTTP port (usually 8080)",
+          "username": "[TRANSLATE] Login username",
+          "password": "[TRANSLATE] User password"
+        }
+      }
+    },
+    "error": {
+      "connection": "[TRANSLATE] Unable to connect to the heat pump. Check the IP address and port.",
+      "authentication": "[TRANSLATE] Invalid login credentials. Check your username and password.",
+      "unknown": "[TRANSLATE] An unknown error occurred. Check logs for more information."
+    },
+    "abort": {
+      "already_configured": "[TRANSLATE] Clausius heat pump is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "[TRANSLATE] Clausius Heat Pump Settings",
+        "description": "[TRANSLATE] Configure integration parameters",
+        "data": {
+          "scan_interval": "[TRANSLATE] Refresh interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "[TRANSLATE] How often to refresh data from the heat pump (30-3600 seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "clausius_outside_temp": {
+        "name": "[TRANSLATE] Outside Temperature"
+      },
+      "clausius_cwu_temp": {
+        "name": "[TRANSLATE] DHW Temperature"
+      },
+      "clausius_on_off": {
+        "name": "[TRANSLATE] Power Status"
+      },
+      "clausius_mode": {
+        "name": "[TRANSLATE] Operating Mode"
+      },
+      "clausius_compressor_status": {
+        "name": "[TRANSLATE] Compressor Status"
+      },
+      "clausius_pump_status": {
+        "name": "[TRANSLATE] Pump Status"
+      },
+      "clausius_pump_level": {
+        "name": "[TRANSLATE] Pump Level"
+      },
+      "clausius_glycol_pressure": {
+        "name": "[TRANSLATE] Glycol Pressure"
+      },
+      "clausius_glycol_input_temp": {
+        "name": "[TRANSLATE] Glycol Input Temperature"
+      },
+      "clausius_glycol_output_temp": {
+        "name": "[TRANSLATE] Glycol Output Temperature"
+      },
+      "clausius_water_presure": {
+        "name": "[TRANSLATE] Water Pressure"
+      },
+      "clausius_water_heating_in_temp": {
+        "name": "[TRANSLATE] Water Heating Input Temperature"
+      },
+      "clausius_water_heating_out_temp": {
+        "name": "[TRANSLATE] Water Heating Output Temperature"
+      },
+      "clausius_spf_year": {
+        "name": "[TRANSLATE] Annual SPF"
+      },
+      "clausius_spf_month": {
+        "name": "[TRANSLATE] Monthly SPF"
+      },
+      "clausius_spf_day": {
+        "name": "[TRANSLATE] Daily SPF"
+      }
+    }
+  }
+}
