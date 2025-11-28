@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2] - 2025-11-28
+  ### Added
+  - Multi-language support (English, Polish)
+  - Translation system using Home Assistant's native i18n
+  - Template for adding new languages
+
 ### Added
 - Initial release of Clausius Heat Pump integration
 - Support for reading temperature data from Clausius heat pump
