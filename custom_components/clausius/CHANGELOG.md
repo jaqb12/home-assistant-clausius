@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3] - 2025-11-30
+  ### 
+  - Updated integration name from "Classic H 1-10 Heat Pump to "Clausius Classic H 1-10 Heat Pump" to match actual product branding
+  - Corrected naming in manifest.json for better discoverability
+
 ## [0.0.2] - 2025-11-28
   ### Added
   - Multi-language support (English, Polish)
