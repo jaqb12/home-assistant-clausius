@@ -3,6 +3,5 @@
   "content_in_root": false,
   "filename": "clausius",
   "render_readme": true,
-  "iot_class": "Local Polling",
   "homeassistant": "2023.1.0"
 }
