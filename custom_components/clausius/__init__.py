@@ -22,9 +22,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Forward the setup to the sensor platform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register services if needed
-    # await hass.services.async_register(DOMAIN, "refresh_data", async_refresh_data)
-
     return True
 
 
