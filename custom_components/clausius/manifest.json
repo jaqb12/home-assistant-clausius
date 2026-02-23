@@ -6,9 +6,9 @@
   "dependencies": [],
   "documentation": "https://github.com/jaqb12/home-assistant-clausius",
   "integration_type": "device",
-  "issue_tracker": "https://github.com/jaqb12/home-assistant-clausius/issues",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jaqb12/home-assistant-clausius/issues",
+  "loggers": ["custom_components.clausius"],
   "requirements": [],
-  "version": "0.0.5",
-  "loggers": ["custom_components.clausius"]
+  "version": "0.0.5"
 }
